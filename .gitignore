@@ -8,4 +8,5 @@ dist/
 build/
 *.egg-info/
 .env
+oracle_profiles.json
 generated/

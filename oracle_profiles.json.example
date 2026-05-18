@@ -1,0 +1,10 @@
+{
+  "1": {
+    "name": "Local Development DB",
+    "username": "HR"
+  },
+  "2": {
+    "name": "Test DB",
+    "username": "APP_USER"
+  }
+}

@@ -11,72 +11,75 @@ from .entity_generator import generate_entity
 from .models import TableMetadata
 from .naming import class_name_from_table
 from .oracle_client import OracleClient
+from .profiles import choose_profile, load_profiles
 
 
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(prog="oracle-entity-generator")
     subparsers = parser.add_subparsers(dest="command", required=True)
 
-    for command in ("ddl", "entity", "hybrid"):
-        subparser = subparsers.add_parser(command)
-        _add_connection_args(subparser)
+    entity = subparsers.add_parser("entity")
+    _add_profile_args(entity)
+    entity.add_argument("--password")
+    entity.add_argument("--table")
+    entity.add_argument("--source", choices=["metadata", "ddl"], default="metadata")
+    entity.add_argument("--owner")
+    entity.add_argument("--output", type=Path)
+    entity.add_argument("--package", dest="package_name")
 
     from_ddl = subparsers.add_parser("from-ddl")
     from_ddl.add_argument("ddl_file", type=Path)
-    from_ddl.add_argument("--username")
+    _add_profile_args(from_ddl)
     from_ddl.add_argument("--output", type=Path)
     from_ddl.add_argument("--package", dest="package_name")
+
+    from_ddl_dir = subparsers.add_parser("from-ddl-dir")
+    from_ddl_dir.add_argument("ddl_dir", type=Path)
+    _add_profile_args(from_ddl_dir)
+    from_ddl_dir.add_argument("--output", type=Path)
+    from_ddl_dir.add_argument("--package", dest="package_name")
 
     return parser
 
 
-def _add_connection_args(parser: argparse.ArgumentParser) -> None:
-    parser.add_argument("--username")
-    parser.add_argument("--password")
-    parser.add_argument("--table")
-    parser.add_argument("--owner")
-    parser.add_argument("--output", type=Path)
-    parser.add_argument("--package", dest="package_name")
+def _add_profile_args(parser: argparse.ArgumentParser) -> None:
+    parser.add_argument("--profile")
+    parser.add_argument("--profiles-file", type=Path, default=Path("oracle_profiles.json"))
 
 
 def main(argv: list[str] | None = None) -> int:
     parser = build_parser()
     args = parser.parse_args(argv)
     config = load_config()
+    profiles = load_profiles(args.profiles_file)
+    profile = choose_profile(profiles, args.profile)
 
     if args.command == "from-ddl":
         ddl = args.ddl_file.read_text(encoding="utf-8")
-        username = args.username or input("Username: ").strip()
-        table = _with_default_schema(parse_create_table(ddl), username)
+        table = _with_default_schema(parse_create_table(ddl), profile.username)
         output_dir = args.output or config.output_dir
         package_name = args.package_name or config.java_package
         _write_entity(table, output_dir, package_name)
         return 0
 
-    username = args.username or input("Username: ").strip()
-    password = args.password or getpass.getpass("Password: ")
-    table_name = (args.table or input("Table: ").strip()).upper()
-    output_dir = args.output or config.output_dir
-    package_name = args.package_name or config.java_package
-    client = OracleClient(config, username, password)
-
-    if args.command == "ddl":
-        ddl = client.fetch_ddl(table_name, owner=args.owner)
-        output_dir.mkdir(parents=True, exist_ok=True)
-        (output_dir / f"{table_name}.sql").write_text(ddl, encoding="utf-8")
-        print(ddl)
+    if args.command == "from-ddl-dir":
+        output_dir = args.output or config.output_dir
+        package_name = args.package_name or config.java_package
+        for ddl_file in sorted(args.ddl_dir.glob("*.sql")):
+            table = _with_default_schema(parse_create_table(ddl_file.read_text(encoding="utf-8")), profile.username)
+            _write_entity(table, output_dir, package_name)
         return 0
 
     if args.command == "entity":
-        table = client.inspect_table(table_name, owner=args.owner)
-        _write_entity(table, output_dir, package_name)
-        return 0
-
-    if args.command == "hybrid":
-        ddl = client.fetch_ddl(table_name, owner=args.owner)
-        table = client.inspect_table(table_name, owner=args.owner)
-        output_dir.mkdir(parents=True, exist_ok=True)
-        (output_dir / f"{table_name}.sql").write_text(ddl, encoding="utf-8")
+        password = args.password or getpass.getpass("Password: ")
+        table_name = (args.table or input("Table: ").strip()).upper()
+        output_dir = args.output or config.output_dir
+        package_name = args.package_name or config.java_package
+        client = OracleClient(config, profile.username, password)
+        if args.source == "metadata":
+            table = client.inspect_table(table_name, owner=args.owner)
+        else:
+            table = _with_default_schema(parse_create_table(client.fetch_ddl(table_name, owner=args.owner)), profile.username)
         _write_entity(table, output_dir, package_name)
         return 0
 
