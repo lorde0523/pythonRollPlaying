@@ -2,11 +2,13 @@ from __future__ import annotations
 
 import argparse
 import getpass
+from dataclasses import replace
 from pathlib import Path
 
 from .config import load_config
 from .ddl_parser import parse_create_table
 from .entity_generator import generate_entity
+from .models import TableMetadata
 from .naming import class_name_from_table
 from .oracle_client import OracleClient
 
@@ -21,6 +23,7 @@ def build_parser() -> argparse.ArgumentParser:
 
     from_ddl = subparsers.add_parser("from-ddl")
     from_ddl.add_argument("ddl_file", type=Path)
+    from_ddl.add_argument("--username")
     from_ddl.add_argument("--output", type=Path)
     from_ddl.add_argument("--package", dest="package_name")
 
@@ -43,7 +46,8 @@ def main(argv: list[str] | None = None) -> int:
 
     if args.command == "from-ddl":
         ddl = args.ddl_file.read_text(encoding="utf-8")
-        table = parse_create_table(ddl)
+        username = args.username or input("Username: ").strip()
+        table = _with_default_schema(parse_create_table(ddl), username)
         output_dir = args.output or config.output_dir
         package_name = args.package_name or config.java_package
         _write_entity(table, output_dir, package_name)
@@ -87,3 +91,9 @@ def _write_entity(table, output_dir: Path, package_name: str) -> Path:
     path.write_text(source, encoding="utf-8")
     print(path)
     return path
+
+
+def _with_default_schema(table: TableMetadata, username: str) -> TableMetadata:
+    if table.owner:
+        return table
+    return replace(table, owner=username.upper())
