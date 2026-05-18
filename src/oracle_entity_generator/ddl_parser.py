@@ -23,7 +23,23 @@ def parse_create_table(ddl: str) -> TableMetadata:
         if column is not None:
             columns.append(column)
 
-    return TableMetadata(name=table_name, columns=columns, owner=match.group("owner"))
+    table_comment = _table_comment(ddl, table_name)
+    column_comments = _column_comments(ddl, table_name)
+    columns = [
+        ColumnMetadata(
+            name=column.name,
+            data_type=column.data_type,
+            data_length=column.data_length,
+            data_precision=column.data_precision,
+            data_scale=column.data_scale,
+            nullable=column.nullable,
+            comment=column_comments.get(column.name),
+            is_primary_key=column.is_primary_key,
+        )
+        for column in columns
+    ]
+
+    return TableMetadata(name=table_name, columns=columns, owner=match.group("owner"), comment=table_comment)
 
 
 def _split_top_level(body: str) -> list[str]:
@@ -89,3 +105,21 @@ def _parse_column(part: str, primary_keys: set[str]) -> ColumnMetadata | None:
         nullable="NOT NULL" not in rest and not inline_primary,
         is_primary_key=name in primary_keys or inline_primary,
     )
+
+
+def _table_comment(ddl: str, table_name: str) -> str | None:
+    pattern = rf"COMMENT\s+ON\s+TABLE\s+(?:(?:\"?\w+\"?)\.)?\"?{re.escape(table_name)}\"?\s+IS\s+'(?P<comment>(?:''|[^'])*)'"
+    match = re.search(pattern, ddl, re.IGNORECASE)
+    return _unescape_comment(match.group("comment")) if match else None
+
+
+def _column_comments(ddl: str, table_name: str) -> dict[str, str]:
+    pattern = rf"COMMENT\s+ON\s+COLUMN\s+(?:(?:\"?\w+\"?)\.)?\"?{re.escape(table_name)}\"?\.(?P<column>\"?\w+\"?)\s+IS\s+'(?P<comment>(?:''|[^'])*)'"
+    return {
+        match.group("column").strip('"').upper(): _unescape_comment(match.group("comment"))
+        for match in re.finditer(pattern, ddl, re.IGNORECASE)
+    }
+
+
+def _unescape_comment(value: str) -> str:
+    return value.replace("''", "'")

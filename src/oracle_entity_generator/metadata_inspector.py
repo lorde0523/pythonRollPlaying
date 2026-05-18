@@ -39,7 +39,22 @@ ORDER BY cols.POSITION
 """.strip()
 
 
-def rows_to_table_metadata(table_name: str, rows: list[dict], primary_keys: set[str], owner: str | None = None) -> TableMetadata:
+def build_table_comment_sql() -> str:
+    return """
+SELECT COMMENTS
+FROM ALL_TAB_COMMENTS
+WHERE OWNER = :owner
+  AND TABLE_NAME = :table_name
+""".strip()
+
+
+def rows_to_table_metadata(
+    table_name: str,
+    rows: list[dict],
+    primary_keys: set[str],
+    owner: str | None = None,
+    table_comment: str | None = None,
+) -> TableMetadata:
     columns = [
         ColumnMetadata(
             name=row["COLUMN_NAME"],
@@ -53,4 +68,4 @@ def rows_to_table_metadata(table_name: str, rows: list[dict], primary_keys: set[
         )
         for row in rows
     ]
-    return TableMetadata(name=table_name, columns=columns, owner=owner)
+    return TableMetadata(name=table_name, columns=columns, owner=owner, comment=table_comment)

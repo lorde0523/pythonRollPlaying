@@ -190,6 +190,7 @@ Select profile number:
 
 ```text
 ALL_TAB_COLUMNS
+ALL_TAB_COMMENTS
 ALL_COL_COMMENTS
 ALL_CONSTRAINTS
 ALL_CONS_COLUMNS
@@ -201,9 +202,12 @@ ALL_CONS_COLUMNS
 
 ```sql
 DBMS_METADATA.GET_DDL('TABLE', :table_name, :owner)
+DBMS_METADATA.GET_DEPENDENT_DDL('COMMENT', :table_name, :owner)
 ```
 
-조회한 DDL은 파일로 저장하지 않고 바로 파싱해서 Entity 생성에 사용합니다.
+조회한 DDL은 파일로 저장하지 않고 바로 파싱해서 Entity 생성에 사용합니다. `COMMENT ON TABLE`, `COMMENT ON COLUMN` 문이 함께 있으면 `@Comment`도 생성합니다.
+
+`--source metadata`와 `--source ddl`은 같은 테이블명, 컬럼 타입, PK, nullable, comment 정보를 얻을 수 있으면 같은 Entity를 생성합니다. 단, DDL 방식은 DDL 문자열 안에 comment 문이 포함되어 있어야 metadata 방식과 comment까지 동일해집니다.
 
 ## 생성되는 Entity 규칙
 

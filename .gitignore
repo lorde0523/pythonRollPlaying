@@ -10,3 +10,4 @@ build/
 .env
 oracle_profiles.json
 generated/
+docs/superpowers/

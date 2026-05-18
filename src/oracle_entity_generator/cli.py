@@ -79,7 +79,7 @@ def main(argv: list[str] | None = None) -> int:
         if args.source == "metadata":
             table = client.inspect_table(table_name, owner=args.owner)
         else:
-            table = _with_default_schema(parse_create_table(client.fetch_ddl(table_name, owner=args.owner)), profile.username)
+            table = _with_default_schema(parse_create_table(client.fetch_ddl_with_comments(table_name, owner=args.owner)), profile.username)
         _write_entity(table, output_dir, package_name)
         return 0
 
