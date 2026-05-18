@@ -1,6 +1,6 @@
 import json
 
-from oracle_entity_generator.profiles import load_profiles, resolve_profile
+from oracle_entity_generator.profiles import DEFAULT_PROFILE_PATH, load_profiles, resolve_profile
 
 
 def test_load_profiles_reads_numbered_json_profiles(tmp_path):
@@ -37,3 +37,7 @@ def test_resolve_profile_returns_selected_profile():
     profile = resolve_profile(profiles, "1")
 
     assert profile.username == "HR"
+
+
+def test_default_profile_path_is_feature_scoped():
+    assert DEFAULT_PROFILE_PATH.as_posix() == "configs/oracle_entity_generator/oracle_profiles.json"

@@ -36,10 +36,11 @@ dev    -> pytest 설치, 테스트 실행에 필요
 
 ## 프로필 설정
 
-`oracle_profiles.json.example`을 복사해서 `oracle_profiles.json`을 만듭니다.
+기능별 설정 폴더의 예시 파일을 복사해서 실제 설정 파일을 만듭니다.
 
 ```bash
-copy oracle_profiles.json.example oracle_profiles.json
+copy configs\oracle_entity_generator\oracle.properties.example configs\oracle_entity_generator\oracle.properties
+copy configs\oracle_entity_generator\oracle_profiles.json.example configs\oracle_entity_generator\oracle_profiles.json
 ```
 
 예시:
@@ -57,11 +58,11 @@ copy oracle_profiles.json.example oracle_profiles.json
 }
 ```
 
-`username`은 Oracle 접속 사용자명이며, 생성되는 Entity의 `schema` 기본값으로도 사용됩니다. `oracle_profiles.json`은 개인 접속 정보라서 Git 추적에서 제외됩니다.
+`username`은 Oracle 접속 사용자명이며, 생성되는 Entity의 `schema` 기본값으로도 사용됩니다. 실제 `oracle_profiles.json`과 `oracle.properties`는 개인 설정이라서 Git 추적에서 제외됩니다.
 
 ## 공통 설정
 
-다음 값들은 환경 변수로 설정할 수 있습니다. 설정하지 않으면 기본값을 사용합니다.
+공통 Oracle 서버 설정은 `configs/oracle_entity_generator/oracle.properties`에서 관리합니다.
 
 ```text
 ORACLE_HOST=test-db.example.com
@@ -144,7 +145,8 @@ python -m oracle_entity_generator from-ddl-dir ./ddl --profile 1 --output ./gene
 
 ```text
 --profile        oracle_profiles.json의 프로필 번호
---profiles-file  프로필 JSON 경로. 기본값: oracle_profiles.json
+--profiles-file  프로필 JSON 경로. 기본값: configs/oracle_entity_generator/oracle_profiles.json
+--properties-file 공통 설정 properties 경로. 기본값: configs/oracle_entity_generator/oracle.properties
 --password       Oracle 비밀번호. 생략하면 프롬프트로 입력
 --table          대상 테이블명. 생략하면 프롬프트로 입력
 --source         metadata 또는 ddl. 기본값: metadata
@@ -159,6 +161,7 @@ python -m oracle_entity_generator from-ddl-dir ./ddl --profile 1 --output ./gene
 ddl_file         읽을 DDL 파일 경로
 --profile        schema 기본값으로 사용할 프로필 번호
 --profiles-file  프로필 JSON 경로
+--properties-file 공통 설정 properties 경로
 --output         생성 파일 출력 경로
 --package        Java package 이름
 ```
@@ -169,6 +172,7 @@ ddl_file         읽을 DDL 파일 경로
 ddl_dir          .sql 파일들이 있는 폴더
 --profile        schema 기본값으로 사용할 프로필 번호
 --profiles-file  프로필 JSON 경로
+--properties-file 공통 설정 properties 경로
 --output         생성 파일 출력 경로
 --package        Java package 이름
 ```
@@ -368,4 +372,5 @@ Java Entity 생성 규칙
 - `BaseAuditEntity` 파일 자체는 생성하지 않습니다.
 - DDL 파일 파싱은 기본적인 `CREATE TABLE (...)` 형태를 대상으로 합니다.
 - FK 기반 연관관계 매핑은 아직 생성하지 않습니다.
-- 클래스명 단수화는 하지 않고 테이블명을 PascalCase로 변환합니다. 예: `EMPLOYEES` -> `Employees`
+- 클래스명 단수화는 하지 않고 테이블명을 PascalCase로 변환합니다. 예: `EMPLOYEES` -> `Employees`, `USER_NAME_DATA` -> `UserNameData`
+- 필드명은 컬럼명을 camelCase로 변환합니다. 예: `USER_NAME_DATA` -> `userNameData`

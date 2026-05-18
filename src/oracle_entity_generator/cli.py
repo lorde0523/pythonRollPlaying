@@ -5,13 +5,13 @@ import getpass
 from dataclasses import replace
 from pathlib import Path
 
-from .config import load_config
+from .config import DEFAULT_PROPERTIES_PATH, load_config
 from .ddl_parser import parse_create_table
 from .entity_generator import generate_entity
 from .models import TableMetadata
 from .naming import class_name_from_table
 from .oracle_client import OracleClient
-from .profiles import choose_profile, load_profiles
+from .profiles import DEFAULT_PROFILE_PATH, choose_profile, load_profiles
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -44,13 +44,14 @@ def build_parser() -> argparse.ArgumentParser:
 
 def _add_profile_args(parser: argparse.ArgumentParser) -> None:
     parser.add_argument("--profile")
-    parser.add_argument("--profiles-file", type=Path, default=Path("oracle_profiles.json"))
+    parser.add_argument("--profiles-file", type=Path, default=DEFAULT_PROFILE_PATH)
+    parser.add_argument("--properties-file", type=Path, default=DEFAULT_PROPERTIES_PATH)
 
 
 def main(argv: list[str] | None = None) -> int:
     parser = build_parser()
     args = parser.parse_args(argv)
-    config = load_config()
+    config = load_config(args.properties_file)
     profiles = load_profiles(args.profiles_file)
     profile = choose_profile(profiles, args.profile)
 

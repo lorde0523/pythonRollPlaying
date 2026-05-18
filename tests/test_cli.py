@@ -13,6 +13,8 @@ def test_entity_command_uses_profile_and_source():
     assert args.source == "ddl"
     assert args.table == "EMPLOYEES"
     assert args.output is None
+    assert args.profiles_file.as_posix() == "configs/oracle_entity_generator/oracle_profiles.json"
+    assert args.properties_file.as_posix() == "configs/oracle_entity_generator/oracle.properties"
 
 
 def test_from_ddl_accepts_profile_for_default_schema():
@@ -73,6 +75,8 @@ def test_from_ddl_dir_generates_entities_for_all_sql_files(tmp_path):
             "1",
             "--profiles-file",
             str(profiles_file),
+            "--properties-file",
+            str(tmp_path / "missing.properties"),
             "--output",
             str(output_dir),
         ]

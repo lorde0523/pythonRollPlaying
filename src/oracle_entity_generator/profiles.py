@@ -6,7 +6,7 @@ from pathlib import Path
 from typing import Any
 
 
-DEFAULT_PROFILE_PATH = Path("oracle_profiles.json")
+DEFAULT_PROFILE_PATH = Path("configs/oracle_entity_generator/oracle_profiles.json")
 
 
 @dataclass(frozen=True)
