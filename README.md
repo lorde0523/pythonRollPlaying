@@ -4,10 +4,10 @@ Oracle 테이블 DDL 또는 메타데이터를 읽어서 Java JPA Entity 파일�
 
 Oracle 서버 접속 정보는 공통 설정으로 관리하고, `oracle_profiles.json`에는 구분용 `name`과 `username`만 등록합니다. 실행할 때는 프로필 번호와 테이블명만 선택하는 흐름을 기준으로 합니다. 비밀번호는 JSON에 저장하지 않고 실행 중 입력받습니다.
 
-## Roles
+## 역할 목록
 
-- `Oracle Entity Generator` — 저장소 루트의 Python CLI. Oracle 테이블을 Java JPA Entity로 변환합니다.
-- [`Screen Test Document Generator`](roles/screen_test_document_generator/README.md) — 프론트엔드·백엔드 경로와 대상 화면을 입력받아 관련 컴포넌트/API만 분석하고 실행용 Excel 테스트 문서를 생성하는 로컬 웹 도구입니다.
+- `Oracle 엔티티 생성기` — 저장소 루트의 Python CLI. Oracle 테이블을 Java JPA Entity로 변환합니다.
+- [`화면 테스트 문서 생성기`](roles/screen_test_document_generator/README.md) — 프론트엔드·백엔드 경로와 대상 화면을 입력받아 관련 컴포넌트/API만 분석하고 실행용 Excel 테스트 문서를 생성하는 로컬 웹 도구입니다.
 
 ## 주요 기능
 

@@ -24,12 +24,12 @@ function extractParams(api, type) {
   const params = [];
   const pathParams = [...route.matchAll(/:([A-Za-z_][\w-]*)/g)].map((match) => match[1]);
   if (pathParams.length) {
-    for (const name of pathParams) params.push(`path.${name} = <입력값>`);
+    for (const name of pathParams) params.push(`경로.${name} = <입력값>`);
   }
   if (["POST", "PUT", "PATCH"].includes(method.toUpperCase())) {
-    params.push("body = <요청 JSON 입력>");
+    params.push("요청 본문 = <JSON 입력>");
   }
-  if (!params.length && route.includes("?")) params.push("query = <입력값>");
+  if (!params.length && route.includes("?")) params.push("쿼리 = <입력값>");
   return params.length ? params.join("\n") : "없음";
 }
 
@@ -72,7 +72,7 @@ function createExecutionSheet(workbook, analysis) {
   sheet.getRange("A1:I1").format.rowHeight = 32;
 
   sheet.getRange("A2:I2").merge();
-  sheet.getRange("A2").values = [["Params를 실제 사용값으로 수정한 뒤 테스트하고, 화면 Evidence 칸에 캡처 이미지를 붙여 넣으세요."]];
+  sheet.getRange("A2").values = [["입력값(파라미터)을 실제 사용값으로 수정한 뒤 테스트하고, 화면 증빙 칸에 캡처 이미지를 붙여 넣으세요."]];
   sheet.getRange("A2:I2").format = {
     fill: COLORS.lightBlue,
     font: { color: COLORS.navy },
@@ -90,7 +90,7 @@ function createExecutionSheet(workbook, analysis) {
   };
   sheet.getRange("A3:I3").format.rowHeight = 24;
 
-  const headers = ["ID", "구분", "테스트 케이스", "입력 Params", "실행 방법", "기대 결과", "실제 결과", "화면 Evidence", "상태"];
+  const headers = ["ID", "구분", "테스트 케이스", "입력값(파라미터)", "실행 방법", "기대 결과", "실제 결과", "화면 증빙", "상태"];
   sheet.getRange("A4:I4").values = [headers];
   sheet.getRange("A4:I4").format = {
     fill: COLORS.blue,
