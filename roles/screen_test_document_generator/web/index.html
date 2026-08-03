@@ -1,0 +1,76 @@
+<!doctype html>
+<html lang="ko">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="description" content="선택한 화면과 연관된 테스트 케이스 Excel 문서를 생성합니다." />
+    <title>화면 테스트 케이스 생성기</title>
+    <link rel="stylesheet" href="/styles.css" />
+  </head>
+  <body>
+    <main class="shell">
+      <header class="hero">
+        <p class="eyebrow">LOCAL TEST DOC</p>
+        <h1>화면 테스트 케이스 생성기</h1>
+        <p class="intro">대상 화면과 연결된 컴포넌트·API만 찾아 실행용 Excel 문서로 정리합니다.</p>
+      </header>
+
+      <section class="panel" aria-labelledby="form-title">
+        <div class="panel-heading">
+          <div>
+            <p class="step">01 · 분석 대상</p>
+            <h2 id="form-title">프로젝트 경로를 입력하세요</h2>
+          </div>
+          <span class="local-badge">내 PC에서만 실행</span>
+        </div>
+
+        <form id="generator-form">
+          <div class="field-grid">
+            <label class="field">
+              <span>프론트엔드 경로</span>
+              <input id="frontend-path" name="frontendPath" type="text" placeholder="C:\work\project\frontend" autocomplete="off" required />
+              <small>화면과 컴포넌트가 있는 프로젝트 폴더</small>
+            </label>
+
+            <label class="field">
+              <span>백엔드 경로</span>
+              <input id="backend-path" name="backendPath" type="text" placeholder="C:\work\project\backend" autocomplete="off" required />
+              <small>API 라우트가 있는 프로젝트 폴더</small>
+            </label>
+          </div>
+
+          <label class="field screen-field">
+            <span>대상 화면</span>
+            <input id="screen" name="screen" type="text" placeholder="UserPage 또는 src/pages/UserPage.tsx 또는 /users/:id" autocomplete="off" required />
+            <small>화면명, 컴포넌트명, 파일 경로, 라우트 중 하나를 입력할 수 있습니다.</small>
+          </label>
+
+          <div class="flow-note">
+            <span class="flow-number">02</span>
+            <p><strong>자동으로 포함:</strong> 선택 화면이 import한 컴포넌트·훅·API 모듈과 실제 연결된 백엔드 API</p>
+          </div>
+
+          <button id="generate-button" class="primary-button" type="submit">
+            <span>Excel 테스트 문서 생성</span>
+            <span aria-hidden="true">→</span>
+          </button>
+        </form>
+
+        <div id="status" class="status" role="status" aria-live="polite" hidden></div>
+      </section>
+
+      <section id="result" class="result-card" aria-labelledby="result-title" hidden>
+        <div>
+          <p class="step">03 · 생성 완료</p>
+          <h2 id="result-title">테스트 문서가 준비됐습니다</h2>
+          <p id="result-summary" class="result-summary"></p>
+          <p id="related-files" class="related-files"></p>
+        </div>
+        <a id="download-link" class="download-button" href="#">Excel 다운로드</a>
+      </section>
+
+      <footer>분석 과정에서 소스 코드를 실행하거나 수정하지 않습니다.</footer>
+    </main>
+    <script type="module" src="/app.js"></script>
+  </body>
+</html>

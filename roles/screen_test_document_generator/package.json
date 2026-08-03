@@ -1,0 +1,15 @@
+{
+  "name": "source-testdoc-generator",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Analyze frontend/backend source trees and generate an Excel test document.",
+  "scripts": {
+    "generate": "node src/cli.mjs",
+    "web": "node src/server.mjs",
+    "test": "node --test"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}
