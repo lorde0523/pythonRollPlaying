@@ -9,6 +9,9 @@
     "web": "node src/server.mjs",
     "test": "node --test"
   },
+  "dependencies": {
+    "exceljs": "^4.4.0"
+  },
   "engines": {
     "node": ">=20"
   }

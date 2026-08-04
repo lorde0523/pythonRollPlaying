@@ -24,7 +24,13 @@ npm run web
 
 ### 명령행
 
-Node.js 20 이상과 `@oai/artifact-tool` 런타임이 필요합니다.
+Node.js 20 이상이 필요합니다. Excel 파일은 공개 npm 패키지인 `exceljs`로 생성하므로 Codex 외부 환경에서도 사용할 수 있습니다.
+
+최초 한 번 의존성을 설치합니다.
+
+```powershell
+npm install
+```
 
 ```powershell
 npm run generate -- --frontend C:\path\to\frontend --backend C:\path\to\backend --screen UserPage --output outputs\test-document.xlsx

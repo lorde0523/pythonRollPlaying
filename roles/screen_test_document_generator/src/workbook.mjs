@@ -1,6 +1,10 @@
 import fs from "node:fs/promises";
 import path from "node:path";
-import { SpreadsheetFile, Workbook } from "@oai/artifact-tool";
+import ExcelJS from "exceljs";
+
+const SHEET_NAME = "테스트 케이스";
+const FIRST_DATA_ROW = 5;
+const MAX_EDITABLE_ROW = 500;
 
 const COLORS = {
   navy: "#17365D",
@@ -13,6 +17,31 @@ const COLORS = {
   border: "#D9E1F2",
   white: "#FFFFFF",
 };
+
+function argb(color) {
+  return `FF${color.replace("#", "").toUpperCase()}`;
+}
+
+function solidFill(color) {
+  return { type: "pattern", pattern: "solid", fgColor: { argb: argb(color) } };
+}
+
+function thinBorder(color = COLORS.border) {
+  const edge = { style: "thin", color: { argb: argb(color) } };
+  return { top: edge, right: edge, bottom: edge, left: edge };
+}
+
+function styleCells(sheet, startRow, endRow, startColumn, endColumn, style) {
+  for (let row = startRow; row <= endRow; row += 1) {
+    for (let column = startColumn; column <= endColumn; column += 1) {
+      const cell = sheet.getCell(row, column);
+      if (style.fill) cell.fill = style.fill;
+      if (style.font) cell.font = style.font;
+      if (style.alignment) cell.alignment = style.alignment;
+      if (style.border) cell.border = style.border;
+    }
+  }
+}
 
 function extractParams(api, type) {
   if (!api) {
@@ -47,7 +76,7 @@ function simpleCases(analysis) {
         params: extractParams(paramSource, item.type),
         steps: item.steps,
         expected: item.expected,
-        actual: "",
+        actual: null,
         evidence: "화면 캡처 붙여넣기",
         status: "미실행",
       };
@@ -55,137 +84,156 @@ function simpleCases(analysis) {
 }
 
 function createExecutionSheet(workbook, analysis) {
-  const sheet = workbook.worksheets.add("테스트 케이스");
+  const sheet = workbook.addWorksheet(SHEET_NAME, {
+    views: [{ state: "frozen", xSplit: 2, ySplit: 4, showGridLines: false }],
+    pageSetup: { orientation: "landscape", fitToPage: true, fitToWidth: 1, fitToHeight: 0 },
+  });
   const cases = simpleCases(analysis);
-  const firstDataRow = 5;
-  const lastDataRow = firstDataRow + Math.max(cases.length - 1, 0);
+  const lastDataRow = FIRST_DATA_ROW + Math.max(cases.length - 1, 0);
 
-  sheet.showGridLines = false;
-  sheet.getRange("A1:I1").merge();
-  sheet.getRange("A1").values = [["테스트 케이스 실행 문서"]];
-  sheet.getRange("A1:I1").format = {
-    fill: COLORS.navy,
-    font: { bold: true, color: COLORS.white, size: 16 },
-    verticalAlignment: "center",
-    horizontalAlignment: "left",
-  };
-  sheet.getRange("A1:I1").format.rowHeight = 32;
+  sheet.mergeCells("A1:I1");
+  sheet.getCell("A1").value = "테스트 케이스 실행 문서";
+  styleCells(sheet, 1, 1, 1, 9, {
+    fill: solidFill(COLORS.navy),
+    font: { bold: true, color: { argb: argb(COLORS.white) }, size: 16, name: "맑은 고딕" },
+    alignment: { vertical: "middle", horizontal: "left" },
+  });
+  sheet.getRow(1).height = 32;
 
-  sheet.getRange("A2:I2").merge();
-  sheet.getRange("A2").values = [["입력값(파라미터)을 실제 사용값으로 수정한 뒤 테스트하고, 화면 증빙 칸에 캡처 이미지를 붙여 넣으세요."]];
-  sheet.getRange("A2:I2").format = {
-    fill: COLORS.lightBlue,
-    font: { color: COLORS.navy },
-    verticalAlignment: "center",
-    wrapText: true,
-  };
-  sheet.getRange("A2:I2").format.rowHeight = 28;
+  sheet.mergeCells("A2:I2");
+  sheet.getCell("A2").value = "입력값(파라미터)을 실제 사용값으로 수정한 뒤 테스트하고, 화면 증빙 칸에 캡처 이미지를 붙여 넣으세요.";
+  styleCells(sheet, 2, 2, 1, 9, {
+    fill: solidFill(COLORS.lightBlue),
+    font: { color: { argb: argb(COLORS.navy) }, name: "맑은 고딕" },
+    alignment: { vertical: "middle", horizontal: "left", wrapText: true },
+  });
+  sheet.getRow(2).height = 28;
 
-  sheet.getRange("A3:I3").merge();
-  sheet.getRange("A3").values = [[`선택 화면: ${analysis.selection?.screen || "전체"}  |  관련 프론트 파일: ${analysis.selection?.frontendFiles?.length || 0}개`]];
-  sheet.getRange("A3:I3").format = {
-    fill: "#F2F2F2",
-    font: { bold: true, color: COLORS.navy },
-    verticalAlignment: "center",
-  };
-  sheet.getRange("A3:I3").format.rowHeight = 24;
+  sheet.mergeCells("A3:I3");
+  sheet.getCell("A3").value = `선택 화면: ${analysis.selection?.screen || "전체"}  |  관련 프론트 파일: ${analysis.selection?.frontendFiles?.length || 0}개`;
+  styleCells(sheet, 3, 3, 1, 9, {
+    fill: solidFill(COLORS.evidence),
+    font: { bold: true, color: { argb: argb(COLORS.navy) }, name: "맑은 고딕" },
+    alignment: { vertical: "middle", horizontal: "left" },
+  });
+  sheet.getRow(3).height = 24;
 
   const headers = ["ID", "구분", "테스트 케이스", "입력값(파라미터)", "실행 방법", "기대 결과", "실제 결과", "화면 증빙", "상태"];
-  sheet.getRange("A4:I4").values = [headers];
-  sheet.getRange("A4:I4").format = {
-    fill: COLORS.blue,
-    font: { bold: true, color: COLORS.white },
-    verticalAlignment: "center",
-    horizontalAlignment: "center",
-    wrapText: true,
-    borders: { preset: "inside", style: "thin", color: COLORS.border },
-  };
-  sheet.getRange("A4:I4").format.rowHeight = 28;
+  const rows = cases.map((item) => [
+    item.id,
+    item.area,
+    item.title,
+    item.params,
+    item.steps,
+    item.expected,
+    item.actual,
+    item.evidence,
+    item.status,
+  ]);
 
   if (cases.length) {
-    const rows = cases.map((item) => [
-      item.id, item.area, item.title, item.params, item.steps,
-      item.expected, item.actual, item.evidence, item.status,
-    ]);
-    sheet.getRange(`A${firstDataRow}:I${lastDataRow}`).values = rows;
-    sheet.getRange(`A${firstDataRow}:I${lastDataRow}`).format = {
-      verticalAlignment: "top",
-      wrapText: true,
-      borders: {
-        insideHorizontal: { style: "thin", color: COLORS.border },
-        insideVertical: { style: "thin", color: COLORS.border },
-      },
-    };
-    sheet.getRange(`A${firstDataRow}:I${lastDataRow}`).format.rowHeight = 72;
-    sheet.getRange(`A${firstDataRow}:B${lastDataRow}`).format.horizontalAlignment = "center";
-    sheet.getRange(`H${firstDataRow}:H${lastDataRow}`).format = {
-      fill: COLORS.evidence,
-      font: { italic: true, color: "#7F7F7F" },
-      horizontalAlignment: "center",
-      verticalAlignment: "center",
-      wrapText: true,
-      borders: { preset: "all", style: "thin", color: COLORS.border },
-    };
+    sheet.addTable({
+      name: "ExecutionCasesTable",
+      ref: "A4",
+      headerRow: true,
+      totalsRow: false,
+      style: { theme: "TableStyleMedium2", showRowStripes: true },
+      columns: headers.map((name) => ({ name, filterButton: true })),
+      rows,
+    });
+  } else {
+    sheet.getRow(4).values = headers;
+  }
 
-    const table = sheet.tables.add(`A4:I${lastDataRow}`, true, "ExecutionCasesTable");
-    table.style = "TableStyleMedium2";
-    table.showBandedRows = true;
-    table.showFilterButton = true;
+  styleCells(sheet, 4, 4, 1, 9, {
+    fill: solidFill(COLORS.blue),
+    font: { bold: true, color: { argb: argb(COLORS.white) }, name: "맑은 고딕" },
+    alignment: { vertical: "middle", horizontal: "center", wrapText: true },
+    border: thinBorder(),
+  });
+  sheet.getRow(4).height = 28;
 
-    sheet.getRange(`I${firstDataRow}:I${Math.max(lastDataRow, 500)}`).dataValidation = {
-      rule: { type: "list", values: ["미실행", "성공", "실패", "확인 필요"] },
+  if (cases.length) {
+    styleCells(sheet, FIRST_DATA_ROW, lastDataRow, 1, 9, {
+      font: { name: "맑은 고딕", size: 10 },
+      alignment: { vertical: "top", horizontal: "left", wrapText: true },
+      border: thinBorder(),
+    });
+    for (let row = FIRST_DATA_ROW; row <= lastDataRow; row += 1) {
+      sheet.getRow(row).height = 72;
+      sheet.getCell(row, 1).alignment = { vertical: "top", horizontal: "center", wrapText: true };
+      sheet.getCell(row, 2).alignment = { vertical: "top", horizontal: "center", wrapText: true };
+      sheet.getCell(row, 8).fill = solidFill(COLORS.evidence);
+      sheet.getCell(row, 8).font = { italic: true, color: { argb: "FF7F7F7F" }, name: "맑은 고딕" };
+      sheet.getCell(row, 8).alignment = { vertical: "middle", horizontal: "center", wrapText: true };
+    }
+
+    sheet.addConditionalFormatting({
+      ref: `I${FIRST_DATA_ROW}:I${lastDataRow}`,
+      rules: [
+        { type: "containsText", operator: "containsText", text: "성공", style: { fill: solidFill(COLORS.green) } },
+        { type: "containsText", operator: "containsText", text: "실패", style: { fill: solidFill(COLORS.red) } },
+        { type: "containsText", operator: "containsText", text: "확인 필요", style: { fill: solidFill(COLORS.amber) } },
+      ],
+    });
+  }
+
+  for (let row = FIRST_DATA_ROW; row <= MAX_EDITABLE_ROW; row += 1) {
+    sheet.getCell(row, 9).dataValidation = {
+      type: "list",
+      allowBlank: true,
+      formulae: ['"미실행,성공,실패,확인 필요"'],
+      showErrorMessage: true,
+      errorStyle: "error",
+      errorTitle: "상태 입력 오류",
+      error: "목록에서 상태를 선택하세요.",
     };
-    const statusRange = sheet.getRange(`I${firstDataRow}:I${lastDataRow}`);
-    statusRange.conditionalFormats.add("containsText", { text: "성공", format: { fill: COLORS.green } });
-    statusRange.conditionalFormats.add("containsText", { text: "실패", format: { fill: COLORS.red } });
-    statusRange.conditionalFormats.add("containsText", { text: "확인 필요", format: { fill: COLORS.amber } });
   }
 
   const widths = [11, 11, 34, 28, 42, 38, 30, 36, 14];
   widths.forEach((width, index) => {
-    const column = String.fromCharCode(65 + index);
-    sheet.getRange(`${column}:${column}`).format.columnWidth = width;
+    sheet.getColumn(index + 1).width = width;
   });
-  sheet.freezePanes.freezeRows(4);
-  sheet.freezePanes.freezeColumns(2);
-  return { sheet, lastDataRow: Math.max(lastDataRow, firstDataRow), caseCount: cases.length };
+  sheet.autoFilter = cases.length ? undefined : "A4:I4";
+  sheet.pageSetup.printTitlesRow = "1:4";
+  sheet.pageSetup.printArea = `A1:I${Math.max(lastDataRow, FIRST_DATA_ROW)}`;
+
+  return { lastDataRow: Math.max(lastDataRow, FIRST_DATA_ROW), caseCount: cases.length };
 }
 
-export async function createWorkbook(analysis, outputPath, { renderDir, verify = false } = {}) {
-  const workbook = Workbook.create();
-  const { lastDataRow, caseCount } = createExecutionSheet(workbook, analysis);
+async function verifyWorkbook(output, expectedCaseCount) {
+  const checked = new ExcelJS.Workbook();
+  await checked.xlsx.readFile(output);
+  const sheet = checked.getWorksheet(SHEET_NAME);
+  if (!sheet) throw new Error(`생성된 Excel에 '${SHEET_NAME}' 시트가 없습니다.`);
+  if (sheet.getCell("A1").value !== "테스트 케이스 실행 문서") {
+    throw new Error("생성된 Excel의 제목을 확인할 수 없습니다.");
+  }
+  if (expectedCaseCount && sheet.getCell("I5").dataValidation?.type !== "list") {
+    throw new Error("생성된 Excel의 상태 선택 목록을 확인할 수 없습니다.");
+  }
+
+  return JSON.stringify({
+    sheetName: sheet.name,
+    caseCount: expectedCaseCount,
+    rowCount: sheet.rowCount,
+    columnCount: sheet.columnCount,
+    tableNames: Object.keys(sheet.tables),
+    statusValidation: sheet.getCell("I5").dataValidation?.type || "",
+  });
+}
+
+export async function createWorkbook(analysis, outputPath, { verify = false } = {}) {
+  const workbook = new ExcelJS.Workbook();
+  workbook.creator = "source-testdoc-generator";
+  workbook.created = new Date();
+  workbook.modified = new Date();
+
+  const { caseCount } = createExecutionSheet(workbook, analysis);
   const output = path.resolve(outputPath);
   await fs.mkdir(path.dirname(output), { recursive: true });
+  await workbook.xlsx.writeFile(output);
 
-  let inspection = null;
-  let errors = null;
-  if (verify) {
-    inspection = await workbook.inspect({
-      kind: "table",
-      sheetId: "테스트 케이스",
-      range: `A1:I${lastDataRow}`,
-      include: "values,formulas",
-      tableMaxRows: 30,
-      tableMaxCols: 10,
-    });
-    errors = await workbook.inspect({
-      kind: "match",
-      searchTerm: "#REF!|#DIV/0!|#VALUE!|#NAME\\?|#N/A",
-      options: { useRegex: true, maxResults: 100 },
-      summary: "final formula error scan",
-    });
-  }
-
-  const previewPaths = [];
-  if (renderDir) {
-    await fs.mkdir(renderDir, { recursive: true });
-    const preview = await workbook.render({ sheetName: "테스트 케이스", autoCrop: "all", scale: 1, format: "png" });
-    const previewPath = path.join(renderDir, "test-cases-simple.png");
-    await fs.writeFile(previewPath, new Uint8Array(await preview.arrayBuffer()));
-    previewPaths.push(previewPath);
-  }
-
-  const xlsx = await SpreadsheetFile.exportXlsx(workbook);
-  await xlsx.save(output);
-  return { output, caseCount, inspection: inspection?.ndjson || "", errors: errors?.ndjson || "", previewPaths };
+  const inspection = verify ? await verifyWorkbook(output, caseCount) : "";
+  return { output, caseCount, inspection, errors: "", previewPaths: [] };
 }
