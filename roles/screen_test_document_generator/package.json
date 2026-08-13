@@ -1,0 +1,18 @@
+{
+  "name": "source-testdoc-generator",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "선택한 화면과 연관된 프론트엔드·백엔드 소스를 분석해 Excel 테스트 문서를 생성합니다.",
+  "scripts": {
+    "generate": "node src/cli.mjs",
+    "web": "node src/server.mjs",
+    "test": "node --test"
+  },
+  "dependencies": {
+    "exceljs": "^4.4.0"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}
